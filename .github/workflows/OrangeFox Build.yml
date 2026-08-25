@@ -24,6 +24,7 @@ jobs:
       SOONG_ALLOW_MISSING_DEPENDENCIES: 'true'
       FOX_AB_DEVICE: '1'
       OF_FORCE_PREBUILT_KERNEL: '1'
+      FOX_VANILLA_BUILD: '1'
 
     steps:
       - name: Install build dependencies
@@ -89,9 +90,8 @@ jobs:
           test -s "$device_path/prebuilt/kernel"
           test -s "$device_path/prebuilt/dtb.img"
 
-          # OrangeFox uses vendor/recovery and omni product names.
-          sed -i 's#vendor/twrp/config/common.mk#vendor/recovery/config/common.mk#' \
-            "$device_path/$twrp_product.mk"
+          # Keep the TWRP product base from the minimal manifest and expose
+          # an omni product name for the OrangeFox build system.
           sed "s/$twrp_product/omni_$product/g; s/PRODUCT_NAME := twrp_/PRODUCT_NAME := omni_/" \
             "$device_path/$twrp_product.mk" > "$device_path/omni_$product.mk"
           sed -i "s#twrp_$product#omni_$product#g" "$device_path/AndroidProducts.mk"
@@ -99,6 +99,7 @@ jobs:
 
           cat > "$device_path/vendorsetup.sh" <<'EOF'
           export FOX_AB_DEVICE=1
+          export FOX_VANILLA_BUILD=1
           export OF_FORCE_PREBUILT_KERNEL=1
           export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
           EOF
