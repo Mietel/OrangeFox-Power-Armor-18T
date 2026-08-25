@@ -117,7 +117,7 @@ jobs:
           set -eo pipefail
           source build/envsetup.sh
           source "$DEVICE_PATH/vendorsetup.sh"
-          lunch "omni_$PRODUCT-eng"
+          lunch "omni_$PRODUCT-ap2a-eng"
           mka bootimage -j2 2>&1 | tee "$GITHUB_WORKSPACE/orangefox-build.log"
           output="out/target/product/$PRODUCT/boot.img"
           test -s "$output"
