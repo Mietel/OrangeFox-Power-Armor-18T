@@ -60,6 +60,8 @@ jobs:
           rm -rf bootable/recovery vendor/recovery
           git clone --depth=1 -b fox_14.1 https://gitlab.com/OrangeFox/bootable/Recovery.git bootable/recovery
           git clone --depth=1 -b fox_14.1 https://gitlab.com/OrangeFox/vendor/recovery.git vendor/recovery
+          mkdir -p external
+          git clone --depth=1 -b fox_14.1 https://gitlab.com/OrangeFox/external/se_omapi.git external/se_omapi
 
       - name: Add device tree
         working-directory: workspace
