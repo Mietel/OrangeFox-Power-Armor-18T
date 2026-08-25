@@ -1,0 +1,127 @@
+name: OrangeFox Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      DEVICE_VARIANT:
+        description: Device to build
+        required: true
+        type: choice
+        options:
+          - 18t
+          - 18t-ultra
+        default: 18t
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    env:
+      ALLOW_MISSING_DEPENDENCIES: 'true'
+      BUILD_BROKEN_MISSING_REQUIRED_MODULES: 'true'
+      SOONG_ALLOW_MISSING_DEPENDENCIES: 'true'
+      FOX_AB_DEVICE: '1'
+      OF_FORCE_PREBUILT_KERNEL: '1'
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc bison build-essential ccache curl flex g++-multilib gcc-multilib \
+            git-lfs lib32ncurses5-dev lib32readline-dev lib32z1-dev libbz2-dev \
+            liblz4-tool libncurses5-dev libncurses5 libssl-dev libxml2-utils \
+            lzop pngcrush rsync schedtool squashfs-tools unzip xsltproc zip zlib1g-dev
+
+      - name: Install Java and repo
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: '11'
+
+      - name: Install repo tool
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo -o "$HOME/bin/repo"
+          chmod +x "$HOME/bin/repo"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Initialize OrangeFox source
+        run: |
+          mkdir workspace
+          cd workspace
+          repo init --depth=1 -u https://gitlab.com/OrangeFox/Manifest.git -b fox_14.1
+          repo sync -j2 --force-sync
+
+      - name: Add device tree
+        working-directory: workspace
+        env:
+          DEVICE_VARIANT: ${{ inputs.DEVICE_VARIANT }}
+        run: |
+          set -euo pipefail
+          case "$DEVICE_VARIANT" in
+            18t)
+              tree_repo=https://github.com/Mietel/Power_Armor_18T.git
+              device_path=device/ulefone/Power_Armor_18T
+              product=Power_Armor_18T
+              twrp_product=twrp_Power_Armor_18T
+              ;;
+            18t-ultra)
+              tree_repo=https://github.com/Mietel/Power_Armor_18T_Ultra.git
+              device_path=device/ulefone/Power_Armor_18T_Ultra
+              product=Power_Armor_18T_Ultra
+              twrp_product=twrp_Power_Armor_18T_Ultra
+              ;;
+            *)
+              echo "Unsupported device: $DEVICE_VARIANT" >&2
+              exit 1
+              ;;
+          esac
+
+          git clone --depth=1 "$tree_repo" "$device_path"
+          test -s "$device_path/prebuilt/kernel"
+          test -s "$device_path/prebuilt/dtb.img"
+
+          # OrangeFox uses vendor/recovery and omni product names.
+          sed -i 's#vendor/twrp/config/common.mk#vendor/recovery/config/common.mk#' \
+            "$device_path/$twrp_product.mk"
+          sed "s/$twrp_product/omni_$product/g; s/PRODUCT_NAME := twrp_/PRODUCT_NAME := omni_/" \
+            "$device_path/$twrp_product.mk" > "$device_path/omni_$product.mk"
+          sed -i "s#twrp_$product#omni_$product#g" "$device_path/AndroidProducts.mk"
+          sed -i "s/twrp_$product/omni_$product/g" "$device_path/AndroidProducts.mk"
+
+          cat > "$device_path/vendorsetup.sh" <<'EOF'
+          export FOX_AB_DEVICE=1
+          export OF_FORCE_PREBUILT_KERNEL=1
+          export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
+          EOF
+
+          grep -q "omni_$product" "$device_path/AndroidProducts.mk"
+          test -f "$device_path/omni_$product.mk"
+
+          {
+            echo "DEVICE_PATH=$device_path"
+            echo "PRODUCT=$product"
+          } >> "$GITHUB_ENV"
+
+      - name: Build OrangeFox image
+        working-directory: workspace
+        run: |
+          set -eo pipefail
+          source build/envsetup.sh
+          source "$DEVICE_PATH/vendorsetup.sh"
+          lunch "omni_$PRODUCT-eng"
+          mka bootimage -j2 2>&1 | tee "$GITHUB_WORKSPACE/orangefox-build.log"
+          output="out/target/product/$PRODUCT/boot.img"
+          test -s "$output"
+          cp "$output" "$GITHUB_WORKSPACE/OrangeFox-$PRODUCT-boot.img"
+
+      - name: Upload OrangeFox image
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrangeFox-${{ inputs.DEVICE_VARIANT }}
+          path: |
+            OrangeFox-*.img
+            orangefox-build.log
