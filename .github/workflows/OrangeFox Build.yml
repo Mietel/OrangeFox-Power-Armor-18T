@@ -39,7 +39,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: zulu
-          java-version: '11'
+          java-version: '17'
 
       - name: Install repo tool
         run: |
@@ -52,8 +52,13 @@ jobs:
         run: |
           mkdir workspace
           cd workspace
-          repo init --depth=1 -u https://gitlab.com/OrangeFox/Manifest.git -b fox_14.1
+          # The current OrangeFox sync script uses this public minimal manifest
+          # for the experimental fox_14.1 build system.
+          repo init --depth=1 -u https://github.com/nebrassy/platform_manifest_twrp_aosp.git -b twrp-14
           repo sync -j2 --force-sync
+          rm -rf bootable/recovery vendor/recovery
+          git clone --depth=1 -b fox_14.1 https://gitlab.com/OrangeFox/bootable/Recovery.git bootable/recovery
+          git clone --depth=1 -b fox_14.1 https://gitlab.com/OrangeFox/vendor/recovery.git vendor/recovery
 
       - name: Add device tree
         working-directory: workspace
