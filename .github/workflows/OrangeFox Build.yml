@@ -45,12 +45,12 @@ jobs:
 
       - name: Configure swap
         run: |
-          if ! swapon --show=NAME | grep -qx '/swapfile'; then
-            sudo rm -f /swapfile
-            sudo fallocate -l 8G /swapfile
-            sudo chmod 600 /swapfile
-            sudo mkswap /swapfile
-            sudo swapon /swapfile
+          if ! swapon --show=NAME | grep -qx '/swapfile-orangefox'; then
+            sudo rm -f /swapfile-orangefox
+            sudo fallocate -l 8G /swapfile-orangefox
+            sudo chmod 600 /swapfile-orangefox
+            sudo mkswap /swapfile-orangefox
+            sudo swapon /swapfile-orangefox
           fi
           free -h
 
