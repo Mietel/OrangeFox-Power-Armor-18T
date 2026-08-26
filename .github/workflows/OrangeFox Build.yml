@@ -30,6 +30,12 @@ jobs:
     steps:
       - name: Install build dependencies
         run: |
+          # Android sources need most of the hosted runner disk. Remove large
+          # preinstalled toolchains that are not used by this build.
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          df -h /
           sudo apt-get update
           sudo apt-get install -y \
             bc bison build-essential ccache curl flex g++-multilib gcc-multilib \
@@ -68,7 +74,8 @@ jobs:
           # The current OrangeFox sync script uses this public minimal manifest
           # for the experimental fox_14.1 build system.
           repo init --depth=1 -u https://github.com/nebrassy/platform_manifest_twrp_aosp.git -b twrp-14
-          repo sync -j2 --force-sync
+          repo sync -j2 --force-sync --no-clone-bundle --no-tags
+          df -h .
           rm -rf bootable/recovery vendor/recovery
           git clone --depth=1 -b fox_14.1 https://gitlab.com/OrangeFox/bootable/Recovery.git bootable/recovery
           git clone --depth=1 -b fox_14.1 https://gitlab.com/OrangeFox/vendor/recovery.git vendor/recovery
