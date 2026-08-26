@@ -15,6 +15,12 @@ on:
 permissions:
   contents: read
 
+# Android/OrangeFox builds are too heavy for parallel jobs on the hosted runner.
+# A second dispatch waits until the current build finishes.
+concurrency:
+  group: orangefox-build
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-22.04
