@@ -112,6 +112,12 @@ jobs:
           test -s "$device_path/prebuilt/kernel"
           test -s "$device_path/prebuilt/dtb.img"
 
+          # This OrangeFox tree provides Soong plugins outside the standard
+          # allowlist. The Android build system expects their names in a
+          # product or board configuration, not only in the shell environment.
+          board_config="$device_path/BoardConfig.mk"
+          printf '\nBUILD_BROKEN_PLUGIN_VALIDATION := soong-libaosprecovery_defaults soong-libguitwrp_defaults soong-libminuitwrp_defaults soong-vold_defaults\n' >> "$board_config"
+
           # Keep the TWRP product base from the minimal manifest and expose
           # an omni product name for the OrangeFox build system.
           sed "s/$twrp_product/omni_$product/g; s/PRODUCT_NAME := twrp_/PRODUCT_NAME := omni_/" \
