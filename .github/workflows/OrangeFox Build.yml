@@ -24,7 +24,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    timeout-minutes: 60
+    timeout-minutes: 360
     env:
       ALLOW_MISSING_DEPENDENCIES: 'true'
       BUILD_BROKEN_MISSING_REQUIRED_MODULES: 'true'
