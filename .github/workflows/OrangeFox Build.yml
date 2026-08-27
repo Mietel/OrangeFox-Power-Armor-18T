@@ -119,6 +119,11 @@ jobs:
           test -s "$device_path/prebuilt/kernel"
           test -s "$device_path/prebuilt/dtb.img"
 
+          # The Ultra tree was copied from the 18T tree and still had the
+          # original TARGET_DEVICE guard, so its Android.mk rules were skipped.
+          sed -i "s/ifeq (\$(TARGET_DEVICE),Power_Armor_18T)/ifeq (\$(TARGET_DEVICE),$product)/" "$device_path/Android.mk"
+          grep -q "ifeq (\$(TARGET_DEVICE),$product)" "$device_path/Android.mk"
+
           # This OrangeFox tree provides Soong plugins outside the standard
           # allowlist. The Android build system expects their names in a
           # product or board configuration, not only in the shell environment.
